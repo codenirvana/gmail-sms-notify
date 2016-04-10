@@ -43,10 +43,9 @@ def main():
     http = credentials.authorize(httplib2.Http())
     service = discovery.build('gmail', 'v1', http=http)
 
-    id = ListMessages(service)
-    msg = GetMessage(service, id[0]['id'])
-
-    print(msg['payload']['headers'][0]['value'])
+    for id in ListMessages(service):
+        msg = GetMessage(service, id['id'])
+        print(msg['payload']['headers'][0]['value'])
 
 if __name__ == '__main__':
     main()
