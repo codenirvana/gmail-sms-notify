@@ -22,28 +22,20 @@ def get_credentials():
     if not credentials or credentials.invalid:
         flow = client.flow_from_clientsecrets(CLIENT_SECRET_FILE, SCOPES)
         flow.user_agent = APPLICATION_NAME
-        if flags:
-            credentials = tools.run_flow(flow, store, flags)
-        else:
-            credentials = tools.run(flow, store)
-        print('Storing credentials to ' + credential_path)
+        credentials = tools.run(flow, store)
+
     return credentials
 
-def ListMessages(service, user_id):
-    response = service.users().messages().list(userId=user_id).execute()
+def ListMessages(service):
+    response = service.users().messages().list(userId="me", labelIds=["INBOX", "UNREAD"]).execute()
     messages = []
     if 'messages' in response:
         messages.extend(response['messages'])
 
-    while 'nextPageToken' in response:
-        page_token = response['nextPageToken']
-        response = service.users().messages().list(userId=user_id, pageToken=page_token).execute()
-        messages.extend(response['messages'])
-
     return messages
 
-def GetMessage(service, user_id, msg_id):
-    message = service.users().messages().get(userId=user_id, id=msg_id).execute()
+def GetMessage(service, msg_id):
+    message = service.users().messages().get(userId="me", id=msg_id, format='metadata',metadataHeaders='Subject').execute()
     return message
 
 def main():
@@ -51,9 +43,10 @@ def main():
     http = credentials.authorize(httplib2.Http())
     service = discovery.build('gmail', 'v1', http=http)
 
-    id = ListMessages(service, 'me')
-    msg = GetMessage(service, 'me', id[0]['id'])
-    print(msg['payload']['headers'][16]['value'])
+    id = ListMessages(service)
+    msg = GetMessage(service, id[0]['id'])
+
+    print(msg['payload']['headers'][0]['value'])
 
 if __name__ == '__main__':
     main()
