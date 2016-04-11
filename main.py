@@ -32,20 +32,34 @@ def ListMessages(service):
     if 'messages' in response:
         messages.extend(response['messages'])
 
-    return messages
+    return [message['id'] for message in messages]
 
 def GetMessage(service, msg_id):
     message = service.users().messages().get(userId="me", id=msg_id, format='metadata',metadataHeaders='Subject').execute()
     return message
+
+def GetLogs():
+    return [line.rstrip('\n') for line in open('logs')]
+
+def UpdateLogs(messages):
+    logs = open('logs','w')
+    logs.write('\n'.join(messages))
+    logs.close()
 
 def main():
     credentials = get_credentials()
     http = credentials.authorize(httplib2.Http())
     service = discovery.build('gmail', 'v1', http=http)
 
-    for id in ListMessages(service):
-        msg = GetMessage(service, id['id'])
-        print(msg['payload']['headers'][0]['value'])
+    msgList = ListMessages(service)
+    prevMessages = GetLogs()
+
+    for msg in msgList:
+        if msg not in prevMessages:
+            msg = GetMessage(service, msg)
+            print(msg['payload']['headers'][0]['value'])
+
+    UpdateLogs(msgList)
 
 if __name__ == '__main__':
     main()
